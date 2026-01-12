@@ -1,1 +1,1679 @@
-# Placeholder Haas VF-4 TRT post
+[POST_VERSION] #DO NOT MOVE OR ALTER THIS LINE# V27.00 P0 E1 W27.00 T1725351955 M27.00 I0 O1
+# Post Name           : HAAS VF-TRT 5X TCP
+# Product             : Mill
+# Machine Name        : HAAS VF-TRT 5X TCP MILL
+# Control Name        : Next Gen
+# Description         : HAAS 5 Axis Mill Post with TWP and RTCP
+# 4-axis/Axis subs.   : Yes
+# 5-axis              : Yes
+# Subprograms         : No
+# Executable          : MP 17.0
+#
+# WARNING: THIS POST IS GENERIC AND IS INTENDED FOR MODIFICATION TO
+# THE MACHINE TOOL REQUIREMENTS AND PERSONAL PREFERENCE.
+#
+# Table is setup on Left hand side of the machine
+#
+# Associated File List$
+#
+# HAAS VF-TRT 5X TCP.control
+# HAAS VF-TRT 5X TCP.mmd
+#
+# --------------------------------------------------------------------------
+# Revision log:
+# --------------------------------------------------------------------------
+# Programmers Note:
+# CNC 07/09/05  -  Initial post update for Mastercam X.
+# CNC 06/26/06  -  Initial post update for Mastercam X2.
+# CNC 11/02/07  -  Added prv_shftdrl$ = zero
+# CNC 08/05/08  -  X3 release - no changes made
+# CNC 03/05/09  -  Initial post update for Mastercam X4
+# CNC 05/06/09  -  Modified rotary axis clamping
+# CNC 06/18/09  -  Correct the can text order of Stop and Ostop
+# CNC 02/03/10  -  Initial post update for Mastercam X5
+# CNC 11/08/10  -  Added fix for X coolant output
+#               -  Removed CD_VAR variables
+#               -  Added fix for 5-axis drill cycle reference output
+# CNC 02/17/11  -  Added arctype$ initialization to correct helix and full arc output when using R or signed R
+# CNC 03/31/11  -  Added tooltable output option (see tool_info initialization) and header output
+#               -  Added unclamp in protretinc if frc_cinit & use_clamp are enabled
+# CNC 05/20/11  -  Initial post update for Mastercam X6
+# CNC 07/24/12  -  X coolant 'With' - separated coolant 'with' logic from cantext 'with' logic to give
+#                    more control over output location of X coolant 'With'.  See pcan1 and pcan1_cool
+# CNC 10/16/12  -  Initial post update for Mastercam X7
+# CNC 02/06/14  -  Initial post update for Mastercam X8
+# GHW 15/05/15  -  Loads of customisation for MATSUURA LF-160 direct drive added G68.2 TWP and G43.4 RTCP - Greg Williams
+# GHW 21/10/16  -  Added Euler Angle calculation
+# GHW 21/06/19  -  Updated for HAAS UMC750 5X TCP MILL
+# GHW 27/03/20  -  Updated 3 axis to 5 axis null positions
+# GHW 05/04/20  -  Updates to Axis Sub
+# GHW 08/05/20  -  Updated clamping
+# GHW 25/05/20  -  Updated 5 Axis Drilling
+# CNC 13/06/20  -  Added use_tool_plane_as_bias switch
+# GHW 19/08/20  -  Updated for HAAS VF with TRT 5X dual rotary table with TCP
+#
+# --------------------------------------------------------------------------
+# Features:
+# --------------------------------------------------------------------------
+# This post supports Generic 5 axis milling.
+# It is designed to support the features of Mastercam X Mill
+#
+# Following Misc. Integers are used:
+#
+# mi1$ - G187 High Speed Code output (use mr3$ to set corner rounding value)
+#        Note: G187 can be output with "P" and/or "E" value. G187 by itself
+#        resets the High Speed Mode to machine default values. (usually P2, E=.001)
+#        0 = Off
+#        1 = G187 P1 (Fine)
+#        2 = G187 P2 (Medium)
+#        3 = G187 P3 (Rough)
+#
+# mi2 - Absolute or Incremental positioning at top level
+#        0 = absolute
+#        1 = incremental
+#
+# mi3 - Select G28 or G30 reference point return.
+#        0 = G28, 1 = G30
+#
+# mi4 - Start initial primary rotary axis bias
+#       +/-999 represents start as close to limit as possible
+#       0 represents calculate without using bias
+#       Any other value represents an angle in degrees to attempt
+#       to position near.
+#        -999 = Low, 0 = Off/Default, 999 = Hi, Value = Angle bias
+#
+# mi5 - Start initial secondary rotary axis bias
+#       +/-999 represents start as close to limit as possible
+#       0 represents calculate without using bias
+#       Any other value represents an angle in degrees to attempt
+#       to position near.
+#        -999 = Low, 0 = Off/Default, 999 = Hi, Value = Angle bias
+#
+# mi6 - Add work shift position for rotation center programming
+#        0 =  Output relative to work origin (toolplane)
+#        1 =  Output relative to WCS origin (axis shifts)
+#
+# mi7 - Enable retract to and from linear limits.  Disable for
+#       internal work to prevent part collisions.
+#        0 = Disable, 1 = Enable
+#
+# mi8 - Safe retract/approach at toolchange.
+#       The tool retracts/approachs to limits from last path to current
+#       path or after/before a toolchange
+#       (limits must be enabled, see 'use_stck_typ')
+#        0 = Disable all toolchange retract/approach
+#        1 = Enable null toolchange retract/approach only
+#        2 = Enable toolchange retract/approach only
+#        3 = Enable both toolchange retract/approach
+#        4 = Enable retract/approach between 5 axis chains (cutpos) in
+#            toolpath or sign 1 to 3 negative with toolchange options
+#
+# mi9 - Nutating bias calculation.
+#        0 = Calculate angle bias to original vector
+#        1 = Bias to positive
+#        2 = Bias to negative
+#
+# mi10 - Secondary axis control (non-nutating)
+#         0 = Continuous secondary (primary controlled)
+#         1 = Always stay positive
+#         2 = Always stay negative
+#
+# mr1 - Retract/approach clearance distance at tool reposition
+#
+# mr2 - Right angle head toolpath conversion (not with nutating machine type).
+#       Right angle rotates secondary axis by degrees
+#       The head may only be rotated perpendicular to the secondary axis
+#       0 = Off, Enter angle for amount of head rotation (RA = +/- 90)
+#
+# mr3$ - G187 "E" value. Sets corner rounding value in High Speed mode
+#       Enter the value in Inch or Metric units to control corner rounding
+#       value. No "E" value causes the control to use default value in
+#       Setting 85.
+#
+# mr4 - Not used on HAAS
+#
+# mr5 - Turn off G254 output at A0 C0
+#
+# mr6 - Absolute Safe height in Z for unwinds and toolchanges
+#       (limits must be enabled and mi8, see 'use_stck_typ')
+#       (set the limits to zero to ignore limits and use this safe height)
+#       0 = Off
+#
+# mr7 - Axis shift for X axis, See 'shft_misc_r'
+#
+# mr8 - Axis shift for Y axis, See 'shft_misc_r'
+#
+# mr9 - Axis shift for Z axis, See 'shft_misc_r'
+#
+# mr10 - Nutating distance from work coordinate zero to table zero (Z axis)
+#        Non-nutating Z axis shift with RA (See mr2)
+#
+#Canned text:
+#    Entering cantext on a contour point from within Mastercam allows the
+#    following functions to enable/disable.
+#    Cantext value:
+#    1 = Stop = output the "M00" stop code
+#    2 = Ostop =  output the "M01" optional stop code
+#    3 = Bld on = turn on block delete codes in NC lines
+#    4 = bLd off = turn off block delete codes in NC lines
+#
+#Layout:
+# The term "Reference View" refers to the coordinate system associated
+# with the Top view (Alt-F9, the upper gnomon of the three displayed).
+#
+#3 Axis Rotary (Polar)
+# Polar positioning is offered in Mastercam 3 axis toolpaths through the
+# rotary axis options dialog.
+#
+#Axis Substitution:
+# Use the Rotary axis substitution by drawing the geometry flattened
+# from the cylinder.
+#
+#Toolchange retracts:
+# Mi8 is used to control retracts at tool changes and null toolchanges.
+# Mi8 for tool changes applies to the approach to the part to the retract
+# from the part at the next toolchange (unless changed in a null tool
+# change).  Null toolchange control at a null toolchange uses the current
+# setting and previous setting of mi8.  Through a null toolchange, the
+# setting of mi8 at the retract applies to the approach.
+#
+#Additional Notes:
+# 1) G54 calls are generated where the work offset entry (workofs) are
+#    0 = G54, 1 = G55, etc. This post only uses work offsets.
+# 2) Metric is applied from the NCI met_tool variable.
+# 3) Incremental mode calculates motion from home position at toolchanges.
+#    The home position is used to define the last position of the tool
+#    for all toolchanges.
+# 4) The variable 'absinc' is pre-defined, set mi2 (Misc. Integer) for
+#    the absolute/incremental program output.
+# 5) Always avoid machining to the center of rotation with rotary axis!
+# 6) Set the NCI precision to 7 places precision minimum in Mastercam.  Set the
+#    'Tool vecter length' in 5 axis tool paths as 1 unit minimum, longer is better
+#    to avoid rounding problems (output precision deviations).
+# 7) The tool length is taken from the overall length entered with the tool
+#    definition in Mastercam.
+#
+#Axis Offsetting:
+# This post is designed to support axis offset and zero shifts to handle
+# cases where 1) the primary and secondary axis do not intersect and
+# 2) where the program zero point is not set at the primary and secondary
+# axis intersection.  Always select the WCS origin to be the zero point
+# relative to the machine model when creating toolpaths in Mastercam.
+# The zero point should be selected as the primary and secondary
+# axis intersections whenever possible.
+# When mi6 is off, the assumption is made that the zero position is
+# set in the control at a datum.  This is disabled in all cases for
+# 5 axis toolpaths (including polar and axis substitution).
+# The offsets are set relative to the machine base matrix (matb1-matb9).
+# The machine zero point must be on the primary or secondary axis and
+# the shift (saxisx, saxisy, saxisz) describes where the rotation is
+# relative to the zero point.
+#Table/Table configuration:
+# All 3 axis offsets are supported.
+#
+#Table/Head configuration (only primary table/secondary head):
+# Axis offsets are supported on primary axis.
+#
+#Head/Head configuration:
+# All 3 axis offsets are supported for non-nutating machines.
+# Only the primary to secondary axis offset is supported for nutating machines.
+#
+#Subprograms:
+# Note: Subprograms are not enabled.
+#
+# END_HEADER$
+#
+# --------------------------------------------------------------------------
+#Constants
+# --------------------------------------------------------------------------
+m_one        : -1    #Define constant
+zero         : 0     #Define constant
+one          : 1     #Define constant
+two          : 2     #Define constant
+three        : 3     #Define constant
+four         : 4     #Define constant
+five         : 5     #Define constant
+six          : 6     #Define constant
+arc45        : 45    #Define constant
+arc90        : 90    #Define constant
+arc180       : 180   #Define constant
+arc360       : 360   #Define constant
+c9d          : 999   #Define constant
+c9k          : 9999  #Define constant
+
+# --------------------------------------------------------------------------
+# Debugging and Factory Set Program Switches
+# --------------------------------------------------------------------------
+bug4$        : 1     #Debug output with the tilde '~'.
+                     #A value greater the zero applies the variable formatting with
+                     #debug output (default is typically FS 1 but not a guarantee).
+                     #A value of zero gets the value directly with NO formatting.
+
+linktolvar$  : 1     #Associate X tolerance variables to V9- variable?
+linkplnvar$  : 1     #Associate X plane specific variables to V9- variable?
+
+# The following initialization is used for full arc and helix arc output when the CD
+#   is set to output R or signed R for arcs
+arctype$     : 2     #Arc center type XY plane 1=abs, 2=St-Ctr, 3=Ctr-St, 4=unsigned inc.
+
+#MP executable process controls
+tooltable$   : 3     #Pre-read, call the pwrtt postblock
+skp_lead_flgs$ : 0   #Do NOT use v9 style contour flags
+get_1004$    : 1     #Find gcode 1004 with getnextop?
+rpd_typ_v7$  : 0     #Use Version 7 style contour flags/processing?
+strtool_v7$  : 2     #Use Version 7+ toolname?
+tlchng_aft$  : 2     #Delay call to toolchange until move line
+cant_tlchng$ : 1     #Ignore cantext entry on move with tlchng_aft
+newglobal$   : 1     #Error checking for global variables
+getnextop$   : 1     #Build the next variable table
+nobrk$       : no$   #Omit breakup of x, y & z rapid moves, option 2 is not valid
+                     #Option 2 not valid, only with table/table types
+no_updprv$   : yes$  #Post exclusively maintains previous
+
+err_msg      : 0     #0 = send all messages to file and prompt
+                     #1 = send all messages to screen (the error file is written)
+                     #2 = send one message to screen (the error file is written)
+err_file$    : 0
+                     #0 = Keep the error file only if fatal post errors generated.
+                     #1 = Keep the error file fatal or non-fatal post errors generated.
+                     #2 = Keep the error file on post errors and any mprint messages.
+                     #3 = Keep the error file post errors, mprint messages and user prompts (fq).
+                     #4 = Always keep the error file.
+
+#Tolerances
+ltol_m       : 0.02  #Length tolerance for arccheck, metric
+vtol_m       : 0.0025#System tolerance, metric
+brk_tol      : 0.001 #Break up chordal tolerance for 'brk_mv_head'
+brk_tol_m    : 0.025 #Break up chordal tolerance for 'brk_mv_head', metric
+
+#Program control
+stagetool    : 1     #0 = Do not pre-stage tools, 1 = Stage tools
+progname$    : 1     #Use uppercase for program name
+sub_level$   : -2    #Enable automatic subprogram support (do not enable)
+sub_seq_typ$ : 1     #Enable subprogram sequence number reset at sub call
+cutflag      : one   #Path location flag, set in post
+                     #Before start - 1
+                     #On start -     2
+                     #In path -      3
+                     #On end -       4
+                     #After end -    5
+                     #Retract position - 6
+                     #Plunge point - 7
+#Work offsets
+workofs$     : -1    #Initialize work offset
+force_wcs    : yes$  #Force WCS output at every toolchange?
+use_frst_wcs : yes$  #Use only the first WCS read and ignore all others in NCI
+
+#Spindle control settings
+use_gear     : 0     #Output gear selection code, 0=no, 1=yes
+max_speed    : 15000 #Maximum spindle speed
+min_speed    : 50    #Minimum spindle speed
+
+#Feed control settings
+convert_rpd$ : 0     #Convert rapid to rapid feed
+feed_5ax     : 0     #Convert 5 axis rapid to feed
+use_fr       : 3     #Output feedrate
+                     #0 - programmed feedrate
+                     #1 - inverse feedrate
+                     #2 - inverse feedrate on 5 axis continuous
+                     #3 - inverse feedrate on motion with rotary
+inv_fd_typ   : 0     #Calculate feed location options
+                     #0 - inverse feed at tip
+                     #1 - min-max on flute length
+                     #2 - tip to pivot on tool length
+                     #3 - min-max on flute length to pivot on tool length
+inv_sec      : 0     #Inverse feedrate is in seconds
+radius_fr    : 0     #Use axis radius distance (pri_feed, sec_feed), user must add code
+rot_feed     : 1     #Rapid rotary motion only feed options
+                     #0 - convert to G0 rapid
+                     #1 - apply rapid feedrate
+maxfeedpm    : 500   #Limit for feed in inch/min
+maxfeedpm_m  : 9999  #Limit for feed in mm/min
+maxfrinv     : 27000.#Limit for feed inverse time
+fix_fr       : 250   #If feedrate is zero, apply these values
+deffeedpm    : 1.    #Default for zero feed in inch/min
+deffeedpm_m  : 250.  #Default for zero feed in mm/min
+deffrinv     : 500.  #Default for zero feed inverse time
+
+#Output formatting
+top_map      : 0     #Output toolplane toolpaths mapped to top view
+                     #The post must have code added for your machine control
+pang_output  : 0     #Angle output options, primary
+sang_output  : 0     #Angle output options, secondary
+                     #0 = Normal angle output
+                     #1 = Signed absolute output, 0 - 360
+                     #2 = Implied shortest direction absolute output, 0 - 360
+
+#Coolant variables for X style coolant
+cant_pos     : 0     #Read from current canned text (cant_pos1 - cant_pos20)
+coolant_bin  : 0     #Binary value for current coolant command
+coolant_on   : 0     #Binary value holding the sum of all coolants currently on
+coolantx     : 0     #Selector variable for coolant string selector
+local_int    : 0     #Local variable for output of coolant off commands
+result2      : 0     #Return value for functions
+suppress     : 0     #Flag used to suppress redundant coolant on commands
+all_cool_off : 0     #First coolant off command shuts off ALL coolant options
+trip_flg     : 0     #Trip flag so we only get the error once
+comp_type    : 0     #Cutter compensation type - 0=computer, 1=control, 2=wear, 3=reverse wear, 4=off
+
+# --------------------------------------------------------------------------
+# General Output Settings
+# --------------------------------------------------------------------------
+tool_info    : 3     #Output tooltable information?
+                     #0 = Off - Do not output any tool comments or tooltable
+                     #1 = Tool comments only
+                     #2 = Tooltable in header - no tool comments at T/C
+                     #3 = Tooltable in header - with tool comments at T/C
+
+# --------------------------------------------------------------------------
+# CUSTOM Questions GregW
+# --------------------------------------------------------------------------
+
+use_g682     : 1    #Use G68.2 work plane rotation functions, 0 = no, 1 = yes
+use_g200     : 0    #Use G200 to reset A axis, G200 checks for the tailstock and the lockout switch
+tap_feedtype : 1    #0 = Units Per Minute (G94) #1 = Units Per Revolution (G95)
+use_mi6      : 0    #Allow mi6 datum button to work - Careful if you use a custom WCS
+
+# Return position for tool changes and plane changes
+g53_return_x   : -1050.
+g53_return_y   : 0
+g53_return_z   : 0.
+
+[STARTBIN]
+
+
+# --------------------------------------------------------------------------
+# POST TEXT
+# --------------------------------------------------------------------------
+[CTRL_TEXT_XML_BEGIN]  # Post text edits MUST be made with Control Definition Manager.
+<?xml version="1.0" encoding="UTF-8"?>
+<mp_xml_post_text xml:space="preserve">
+	<control>
+		<control_label>CTRL_MILL|DEFAULT</control_label>
+		<language>en-AU</language>
+		<misc_integers>
+			<misc_2>
+				<text>Absolute or Incremental [0=Abs, 1=Inc]</text>
+			</misc_2>
+			<misc_3>
+				<text>Reference return [0=G28, 1=G30]</text>
+			</misc_3>
+			<misc_4>
+				<text>Initial primary [-999=Low, 0=Def, 999=Hi]</text>
+			</misc_4>
+			<misc_5>
+				<text>Initial secondary [-999=Low, 0=Def, 999=Hi]</text>
+			</misc_5>
+			<misc_6>
+				<text>Add work shift [0=Orig, 1=WCS Orig]</text>
+				<value>1</value>
+			</misc_6>
+			<misc_7>
+				<text>Enable retract to/from limits [0=Off, 1=On]</text>
+				<value>1</value>
+			</misc_7>
+			<misc_8>
+				<text>Retract toolchange [0=Off, 1=Null, 2=Tlchg, 3=Both, NEG/4=Chain]</text>
+				<value>1</value>
+			</misc_8>
+			<misc_9>
+				<text>Nutating bias [0=off, 1=Pos, 2=Neg]</text>
+				<value>1</value>
+			</misc_9>
+			<misc_10>
+				<text>Secondary axis [0=off, 1=Pos, 2=Neg]</text>
+			</misc_10>
+		</misc_integers>
+		<misc_reals>
+			<misc_1>
+				<text>Retract/approach clearance distance</text>
+				<inch_value>2.</inch_value>
+				<metric_value>50.</metric_value>
+			</misc_1>
+			<misc_2>
+				<text>Right Angle head angle/activate [0=Off]</text>
+			</misc_2>
+			<misc_6>
+				<text>Safe Z retract [0=Off]</text>
+			</misc_6>
+			<misc_10>
+				<text>Nutating distance WCS to table/RA spindle</text>
+			</misc_10>
+		</misc_reals>
+		<simple_drill>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</simple_drill>
+		<peck_drill>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</peck_drill>
+		<chip_break>
+			<shift>
+				<text>""</text>
+			</shift>
+		</chip_break>
+		<tap>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</tap>
+		<bore1>
+			<description>
+				<text>Bore #1 (feed-out)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</bore1>
+		<bore2>
+			<description>
+				<text>Bore #2 (stop spindle, rapid out)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</bore2>
+		<misc1>
+			<description>
+				<text>Fine bore (shift)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+		</misc1>
+		<simple_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 1</text>
+			</description>
+		</simple_drill_custom_parameters>
+		<peck_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 2</text>
+			</description>
+		</peck_drill_custom_parameters>
+		<chip_break_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 3</text>
+			</description>
+		</chip_break_drill_custom_parameters>
+		<tap_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 4</text>
+			</description>
+		</tap_custom_parameters>
+		<bore1_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 5</text>
+			</description>
+		</bore1_custom_parameters>
+		<bore2_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 6</text>
+			</description>
+		</bore2_custom_parameters>
+		<misc1_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 7</text>
+			</description>
+		</misc1_custom_parameters>
+		<misc2_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 8</text>
+			</description>
+		</misc2_custom_parameters>
+		<drill_cycle_9_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 9</text>
+			</description>
+		</drill_cycle_9_custom_parameters>
+		<drill_cycle_10_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 10</text>
+			</description>
+		</drill_cycle_10_custom_parameters>
+		<drill_cycle_11_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 11</text>
+			</description>
+		</drill_cycle_11_custom_parameters>
+		<drill_cycle_12_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 12</text>
+			</description>
+		</drill_cycle_12_custom_parameters>
+		<drill_cycle_13_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 13</text>
+			</description>
+		</drill_cycle_13_custom_parameters>
+		<drill_cycle_14_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 14</text>
+			</description>
+		</drill_cycle_14_custom_parameters>
+		<drill_cycle_15_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 15</text>
+			</description>
+		</drill_cycle_15_custom_parameters>
+		<drill_cycle_16_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 16</text>
+			</description>
+		</drill_cycle_16_custom_parameters>
+		<drill_cycle_17_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 17</text>
+			</description>
+		</drill_cycle_17_custom_parameters>
+		<drill_cycle_18_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 18</text>
+			</description>
+		</drill_cycle_18_custom_parameters>
+		<drill_cycle_19_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 19</text>
+			</description>
+		</drill_cycle_19_custom_parameters>
+		<drill_cycle_20_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 20</text>
+			</description>
+		</drill_cycle_20_custom_parameters>
+		<canned_text>
+			<canned_text_1>
+				<text>Stop</text>
+			</canned_text_1>
+			<canned_text_2>
+				<text>Ostop</text>
+			</canned_text_2>
+			<canned_text_3>
+				<text>Bld on</text>
+			</canned_text_3>
+			<canned_text_4>
+				<text>bLd off</text>
+			</canned_text_4>
+			<canned_text_5>
+				<text>M5</text>
+			</canned_text_5>
+			<canned_text_6>
+				<text>M6</text>
+			</canned_text_6>
+			<canned_text_7>
+				<text>M7</text>
+			</canned_text_7>
+			<canned_text_8>
+				<text>M8</text>
+			</canned_text_8>
+			<canned_text_9>
+				<text>M9</text>
+			</canned_text_9>
+			<canned_text_10>
+				<text>M10</text>
+			</canned_text_10>
+			<canned_text_11>
+				<text>One</text>
+			</canned_text_11>
+			<canned_text_12>
+				<text>Two</text>
+			</canned_text_12>
+			<canned_text_13>
+				<text>Three</text>
+			</canned_text_13>
+			<canned_text_14>
+				<text>Four</text>
+			</canned_text_14>
+			<canned_text_15>
+				<text>Five</text>
+			</canned_text_15>
+			<canned_text_16>
+				<text>Six</text>
+			</canned_text_16>
+			<canned_text_17>
+				<text>Seven</text>
+			</canned_text_17>
+			<canned_text_18>
+				<text>Eight</text>
+			</canned_text_18>
+			<canned_text_19>
+				<text>Nine</text>
+			</canned_text_19>
+			<canned_text_20>
+				<text>Ten</text>
+			</canned_text_20>
+			<canned_text_21>
+				<text>Eleven</text>
+			</canned_text_21>
+			<canned_text_22>
+				<text>Twelve</text>
+			</canned_text_22>
+			<canned_text_23>
+				<text>Thirteen</text>
+			</canned_text_23>
+			<canned_text_24>
+				<text>Fourteen</text>
+			</canned_text_24>
+			<canned_text_25>
+				<text>Fifteen</text>
+			</canned_text_25>
+			<canned_text_26>
+				<text>Sixteen</text>
+			</canned_text_26>
+			<canned_text_27>
+				<text>Seventeen</text>
+			</canned_text_27>
+			<canned_text_28>
+				<text>Eighteen</text>
+			</canned_text_28>
+			<canned_text_29>
+				<text>Nineteen</text>
+			</canned_text_29>
+		</canned_text>
+	</control>
+<control>
+		<control_label>CTRL_MILL|HAAS VF-TRT 5X TCP</control_label>
+		<language>en-AU</language>
+		<misc_integers>
+			<misc_1>
+				<text>G187 P* HSM [0=Off, 1=P1, 2=P2, 3=P3]</text>
+				<value>2</value>
+			</misc_1>
+			<misc_2>
+				<text>Absolute or Incremental [0=Abs, 1=Inc]</text>
+			</misc_2>
+			<misc_3>
+				<text>Reference return [0=G28, 1=G30]</text>
+			</misc_3>
+			<misc_4>
+				<text>Initial primary [-999=Low, 0=Def, 999=Hi]</text>
+			</misc_4>
+			<misc_5>
+				<text>Initial secondary [-999=Low, 0=Def, 999=Hi]</text>
+			</misc_5>
+			<misc_6>
+				<text>Add work shift [0=Orig, 1=WCS Orig]</text>
+				<value>1</value>
+			</misc_6>
+			<misc_7>
+				<text>Enable retract to/from limits [0=Off, 1=On]</text>
+				<value>1</value>
+			</misc_7>
+			<misc_8>
+				<text>Retract toolchange [0=Off, 1=Null, 2=Tlchg, 3=Both, NEG/4=Chain]</text>
+				<value>1</value>
+			</misc_8>
+			<misc_9>
+				<text>""</text>
+			</misc_9>
+			<misc_10>
+				<text>Trunion Bias [0=off, 1=Pos, 2=Neg]</text>
+				<value>1</value>
+			</misc_10>
+		</misc_integers>
+		<misc_reals>
+			<misc_1>
+				<text>Retract/approach clearance distance</text>
+				<inch_value>2.</inch_value>
+				<metric_value>50.</metric_value>
+			</misc_1>
+			<misc_2>
+				<text>Right Angle head angle/activate [0=Off]</text>
+			</misc_2>
+			<misc_3>
+				<text>G187 E**** Value (Corner Round)</text>
+				<inch_value>0.001</inch_value>
+				<metric_value>0.025</metric_value>
+			</misc_3>
+			<misc_4>
+				<text>""</text>
+			</misc_4>
+			<misc_5>
+				<text>G254 output at A0 C0 [0=yes 1=no] </text>
+			</misc_5>
+			<misc_6>
+				<text>Safe Z retract [0=Off]</text>
+				<inch_value>12.</inch_value>
+				<metric_value>300.</metric_value>
+			</misc_6>
+			<misc_7>
+				<text>""</text>
+			</misc_7>
+			<misc_8>
+				<text>""</text>
+			</misc_8>
+			<misc_9>
+				<text>""</text>
+			</misc_9>
+			<misc_10>
+				<text>Nutating distance WCS to table/RA spindle</text>
+			</misc_10>
+		</misc_reals>
+		<simple_drill>
+			<description>
+				<text>Drill - Counterbore (G81)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</simple_drill>
+		<peck_drill>
+			<description>
+				<text>Drill - Peck (G83)</text>
+			</description>
+			<first_peck>
+				<text>Peck - Q</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</peck_drill>
+		<chip_break>
+			<description>
+				<text>Drill - ChipBreak (G73)</text>
+			</description>
+			<first_peck>
+				<text>Peck - Q</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</chip_break>
+		<tap>
+			<description>
+				<text>Tap - (G84)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</tap>
+		<bore1>
+			<description>
+				<text>Bore #1 (feed-out)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</bore1>
+		<bore2>
+			<description>
+				<text>Bore #2 (stop spindle, rapid out)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</bore2>
+		<misc1>
+			<description>
+				<text>Fine bore (shift)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+		</misc1>
+		<misc2>
+			<description>
+				<text>Drill - G83-IJK</text>
+			</description>
+			<first_peck>
+				<text>I-First Peck</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>J-Reduce Amount</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>K-Final Peck</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</misc2>
+		<drill_cycle_9>
+			<description>
+				<text>Custom Drill</text>
+			</description>
+			<feed_rate>
+				<text>""</text>
+			</feed_rate>
+			<dwell>
+				<text>""</text>
+			</dwell>
+			<clearance>
+				<text>""</text>
+			</clearance>
+			<retract>
+				<text>""</text>
+			</retract>
+			<depth>
+				<text>""</text>
+			</depth>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</drill_cycle_9>
+		<drill_cycle_10>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_10>
+		<drill_cycle_11>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_11>
+		<drill_cycle_12>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_12>
+		<drill_cycle_13>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_13>
+		<drill_cycle_14>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_14>
+		<drill_cycle_15>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_15>
+		<drill_cycle_16>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_16>
+		<drill_cycle_17>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_17>
+		<drill_cycle_18>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_18>
+		<drill_cycle_19>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_19>
+		<drill_cycle_20>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_20>
+		<simple_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 1</text>
+			</description>
+		</simple_drill_custom_parameters>
+		<peck_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 2</text>
+			</description>
+		</peck_drill_custom_parameters>
+		<chip_break_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 3</text>
+			</description>
+		</chip_break_drill_custom_parameters>
+		<tap_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 4</text>
+			</description>
+		</tap_custom_parameters>
+		<bore1_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 5</text>
+			</description>
+		</bore1_custom_parameters>
+		<bore2_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 6</text>
+			</description>
+		</bore2_custom_parameters>
+		<misc1_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 7</text>
+			</description>
+		</misc1_custom_parameters>
+		<misc2_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 8</text>
+			</description>
+		</misc2_custom_parameters>
+		<drill_cycle_9_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 9</text>
+			</description>
+			<parameter_1>
+				<text>Rapid Height</text>
+			</parameter_1>
+			<parameter_2>
+				<text>1st Peck Depth</text>
+			</parameter_2>
+			<parameter_3>
+				<text>1st Peck Feedrate</text>
+			</parameter_3>
+			<parameter_4>
+				<text>2nd Peck Depth</text>
+			</parameter_4>
+			<parameter_5>
+				<text>2nd Peck Feedrate</text>
+			</parameter_5>
+			<parameter_6>
+				<text>3rd Peck Depth</text>
+			</parameter_6>
+			<parameter_7>
+				<text>3rd Peck Feedrate</text>
+			</parameter_7>
+			<parameter_8>
+				<text>""</text>
+			</parameter_8>
+			<parameter_9>
+				<text>""</text>
+			</parameter_9>
+			<parameter_10>
+				<text>""</text>
+			</parameter_10>
+		</drill_cycle_9_custom_parameters>
+		<drill_cycle_10_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_10_custom_parameters>
+		<drill_cycle_11_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_11_custom_parameters>
+		<drill_cycle_12_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_12_custom_parameters>
+		<drill_cycle_13_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_13_custom_parameters>
+		<drill_cycle_14_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_14_custom_parameters>
+		<drill_cycle_15_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_15_custom_parameters>
+		<drill_cycle_16_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_16_custom_parameters>
+		<drill_cycle_17_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_17_custom_parameters>
+		<drill_cycle_18_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_18_custom_parameters>
+		<drill_cycle_19_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_19_custom_parameters>
+		<drill_cycle_20_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_20_custom_parameters>
+		<canned_text>
+			<canned_text_1>
+				<text>Stop</text>
+			</canned_text_1>
+			<canned_text_2>
+				<text>Ostop</text>
+			</canned_text_2>
+			<canned_text_3>
+				<text>Bld on</text>
+			</canned_text_3>
+			<canned_text_4>
+				<text>bLd off</text>
+			</canned_text_4>
+		</canned_text>
+	</control>
+	<control>
+		<control_label>CTRL_MILL|HAAS VF-TRT 5X TCP</control_label>
+		<language>en-US</language>
+		<misc_integers>
+			<misc_1>
+				<text>G187 P* HSM [0=Off, 1=P1, 2=P2, 3=P3]</text>
+				<value>2</value>
+			</misc_1>
+			<misc_2>
+				<text>Absolute or Incremental [0=Abs, 1=Inc]</text>
+			</misc_2>
+			<misc_3>
+				<text>Reference return [0=G28, 1=G30]</text>
+			</misc_3>
+			<misc_4>
+				<text>Initial primary [-999=Low, 0=Def, 999=Hi]</text>
+			</misc_4>
+			<misc_5>
+				<text>Initial secondary [-999=Low, 0=Def, 999=Hi]</text>
+			</misc_5>
+			<misc_6>
+				<text>Add work shift [0=Orig, 1=WCS Orig]</text>
+				<value>1</value>
+			</misc_6>
+			<misc_7>
+				<text>Enable retract to/from limits [0=Off, 1=On]</text>
+				<value>1</value>
+			</misc_7>
+			<misc_8>
+				<text>Retract toolchange [0=Off, 1=Null, 2=Tlchg, 3=Both, NEG/4=Chain]</text>
+				<value>1</value>
+			</misc_8>
+			<misc_9>
+				<text>""</text>
+			</misc_9>
+			<misc_10>
+				<text>Trunion Bias [0=off, 1=Pos, 2=Neg]</text>
+				<value>1</value>
+			</misc_10>
+		</misc_integers>
+		<misc_reals>
+			<misc_1>
+				<text>Retract/approach clearance distance</text>
+				<inch_value>2.</inch_value>
+				<metric_value>50.</metric_value>
+			</misc_1>
+			<misc_2>
+				<text>Right Angle head angle/activate [0=Off]</text>
+			</misc_2>
+			<misc_3>
+				<text>G187 E**** Value (Corner Round)</text>
+				<inch_value>0.001</inch_value>
+				<metric_value>0.025</metric_value>
+			</misc_3>
+			<misc_4>
+				<text>""</text>
+			</misc_4>
+			<misc_5>
+				<text>G254 output at A0 C0 [0=yes 1=no] </text>
+			</misc_5>
+			<misc_6>
+				<text>Safe Z retract [0=Off]</text>
+				<inch_value>12.</inch_value>
+				<metric_value>300.</metric_value>
+			</misc_6>
+			<misc_7>
+				<text>""</text>
+			</misc_7>
+			<misc_8>
+				<text>""</text>
+			</misc_8>
+			<misc_9>
+				<text>""</text>
+			</misc_9>
+			<misc_10>
+				<text>Nutating distance WCS to table/RA spindle</text>
+			</misc_10>
+		</misc_reals>
+		<simple_drill>
+			<description>
+				<text>Drill - Counterbore (G81)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</simple_drill>
+		<peck_drill>
+			<description>
+				<text>Drill - Peck (G83)</text>
+			</description>
+			<first_peck>
+				<text>Peck - Q</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</peck_drill>
+		<chip_break>
+			<description>
+				<text>Drill - ChipBreak (G73)</text>
+			</description>
+			<first_peck>
+				<text>Peck - Q</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</chip_break>
+		<tap>
+			<description>
+				<text>Tap - (G84)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</tap>
+		<bore1>
+			<description>
+				<text>Bore #1 (feed-out)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</bore1>
+		<bore2>
+			<description>
+				<text>Bore #2 (stop spindle, rapid out)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</bore2>
+		<misc1>
+			<description>
+				<text>Fine bore (shift)</text>
+			</description>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+		</misc1>
+		<misc2>
+			<description>
+				<text>Drill - G83-IJK</text>
+			</description>
+			<first_peck>
+				<text>I-First Peck</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>J-Reduce Amount</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>K-Final Peck</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</misc2>
+		<drill_cycle_9>
+			<description>
+				<text>Custom Drill</text>
+			</description>
+			<feed_rate>
+				<text>""</text>
+			</feed_rate>
+			<dwell>
+				<text>""</text>
+			</dwell>
+			<clearance>
+				<text>""</text>
+			</clearance>
+			<retract>
+				<text>""</text>
+			</retract>
+			<depth>
+				<text>""</text>
+			</depth>
+			<first_peck>
+				<text>""</text>
+			</first_peck>
+			<subsequent_peck>
+				<text>""</text>
+			</subsequent_peck>
+			<peck_clearance>
+				<text>""</text>
+			</peck_clearance>
+			<retract_amount>
+				<text>""</text>
+			</retract_amount>
+			<shift>
+				<text>""</text>
+			</shift>
+		</drill_cycle_9>
+		<drill_cycle_10>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_10>
+		<drill_cycle_11>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_11>
+		<drill_cycle_12>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_12>
+		<drill_cycle_13>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_13>
+		<drill_cycle_14>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_14>
+		<drill_cycle_15>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_15>
+		<drill_cycle_16>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_16>
+		<drill_cycle_17>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_17>
+		<drill_cycle_18>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_18>
+		<drill_cycle_19>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_19>
+		<drill_cycle_20>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_20>
+		<simple_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 1</text>
+			</description>
+		</simple_drill_custom_parameters>
+		<peck_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 2</text>
+			</description>
+		</peck_drill_custom_parameters>
+		<chip_break_drill_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 3</text>
+			</description>
+		</chip_break_drill_custom_parameters>
+		<tap_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 4</text>
+			</description>
+		</tap_custom_parameters>
+		<bore1_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 5</text>
+			</description>
+		</bore1_custom_parameters>
+		<bore2_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 6</text>
+			</description>
+		</bore2_custom_parameters>
+		<misc1_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 7</text>
+			</description>
+		</misc1_custom_parameters>
+		<misc2_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 8</text>
+			</description>
+		</misc2_custom_parameters>
+		<drill_cycle_9_custom_parameters>
+			<description>
+				<text>Custom Drill Parameters 9</text>
+			</description>
+			<parameter_1>
+				<text>Rapid Height</text>
+			</parameter_1>
+			<parameter_2>
+				<text>1st Peck Depth</text>
+			</parameter_2>
+			<parameter_3>
+				<text>1st Peck Feedrate</text>
+			</parameter_3>
+			<parameter_4>
+				<text>2nd Peck Depth</text>
+			</parameter_4>
+			<parameter_5>
+				<text>2nd Peck Feedrate</text>
+			</parameter_5>
+			<parameter_6>
+				<text>3rd Peck Depth</text>
+			</parameter_6>
+			<parameter_7>
+				<text>3rd Peck Feedrate</text>
+			</parameter_7>
+			<parameter_8>
+				<text>""</text>
+			</parameter_8>
+			<parameter_9>
+				<text>""</text>
+			</parameter_9>
+			<parameter_10>
+				<text>""</text>
+			</parameter_10>
+		</drill_cycle_9_custom_parameters>
+		<drill_cycle_10_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_10_custom_parameters>
+		<drill_cycle_11_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_11_custom_parameters>
+		<drill_cycle_12_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_12_custom_parameters>
+		<drill_cycle_13_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_13_custom_parameters>
+		<drill_cycle_14_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_14_custom_parameters>
+		<drill_cycle_15_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_15_custom_parameters>
+		<drill_cycle_16_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_16_custom_parameters>
+		<drill_cycle_17_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_17_custom_parameters>
+		<drill_cycle_18_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_18_custom_parameters>
+		<drill_cycle_19_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_19_custom_parameters>
+		<drill_cycle_20_custom_parameters>
+			<description>
+				<text>""</text>
+			</description>
+		</drill_cycle_20_custom_parameters>
+		<canned_text>
+			<canned_text_1>
+				<text>Stop</text>
+			</canned_text_1>
+			<canned_text_2>
+				<text>Ostop</text>
+			</canned_text_2>
+			<canned_text_3>
+				<text>Bld on</text>
+			</canned_text_3>
+			<canned_text_4>
+				<text>bLd off</text>
+			</canned_text_4>
+		</canned_text>
+	</control>
+</mp_xml_post_text>
+[CTRL_TEXT_XML_END]
+
